@@ -8,9 +8,10 @@ Particularly useful for tackling **AI-generated PRs** that can flood a repositor
 
 When a PR is opened or reopened:
 
-1. Counts how many PRs the same author currently has open.
-2. If the count exceeds the configured limit, the action:
-   - Posts a comment on the new PR explaining why it's being closed.
+1. Counts how many PRs the same author currently has open (drafts included).
+2. Optionally skips the check for trusted authors (`OWNER` / `MEMBER` / `COLLABORATOR`) and for an allowlist of bot accounts.
+3. If the count still exceeds the configured limit, the action:
+   - Posts a comment on the new PR explaining why it's being closed (only once, even on repeated reopen).
    - Closes the PR.
 
 Existing open PRs from that author are left alone: only the new one is closed.
@@ -35,34 +36,33 @@ jobs:
     steps:
       - uses: mirkoalicastro/pr-author-limit@v1
         with:
-          max-open-prs: 2
+          max-open-prs: 5
 ```
 
 The workflow uses `pull_request_target`, so it must exist on the default branch to take effect. Changes inside a PR do not run until merged.
 
 ## Inputs
 
-| Name           | Required | Default        | Description                                                                 |
-|----------------|----------|----------------|-----------------------------------------------------------------------------|
-| `max-open-prs` | no       | `2`            | Maximum number of open PRs allowed per author. New PRs that exceed are closed. |
-| `github-token` | no       | `${{ github.token }}` | Token used to list and close PRs. Needs `pull-requests: write`.       |
+| Name                   | Required | Default               | Description                                                                                       |
+|------------------------|----------|-----------------------|---------------------------------------------------------------------------------------------------|
+| `max-open-prs`         | no       | `5`                   | Maximum number of open PRs allowed per author. New PRs that exceed are closed.                    |
+| `bot-allowlist`        | no       | `''`                  | Comma-separated bot logins to skip (e.g. `renovate[bot],dependabot[bot]`). Must end in `[bot]`.   |
+| `skip-trusted-authors` | no       | `'true'`              | When `'true'`, skip PRs from `OWNER` / `MEMBER` / `COLLABORATOR` authors.                         |
+| `github-token`         | no       | `${{ github.token }}` | Token used to list and close PRs. Needs `pull-requests: write`.                                   |
 
-## Configurable limit via repository variable
+## Configurable inputs via repository variables
 
-To change the limit without editing the workflow, wire it to a repo variable:
+To change inputs without editing the workflow, wire them to repo variables:
 
 ```yaml
 - uses: mirkoalicastro/pr-author-limit@v1
   with:
-    max-open-prs: ${{ vars.MAX_OPEN_PRS_PER_AUTHOR || '2' }}
+    max-open-prs: ${{ vars.MAX_OPEN_PRS_PER_AUTHOR || '5' }}
+    bot-allowlist: ${{ vars.BOT_ALLOWLIST || '' }}
+    skip-trusted-authors: ${{ vars.SKIP_TRUSTED_AUTHORS || 'true' }}
 ```
 
-Then create the variable under **Settings → Secrets and variables → Actions → Variables → New repository variable**:
-
-- Name: `MAX_OPEN_PRS_PER_AUTHOR`
-- Value: any non-negative integer
-
-No workflow restart is needed. The next PR opened will pick up the new value.
+Create the variables under **Settings → Secrets and variables → Actions → Variables → New repository variable**. No workflow restart is needed; the next PR opened picks up the new values.
 
 ## Permissions
 
@@ -73,9 +73,11 @@ The workflow needs `pull-requests: write` on the `GITHUB_TOKEN`. No PAT or secre
 ## Behavior notes
 
 - Triggers: `opened` and `reopened` PRs only. Existing PRs are not affected retroactively.
-- The author count includes the newly opened PR itself.
-- All open PRs are fetched via `github.paginate` (100 per page, no hard cap). Note GitHub's REST API limits `per_page` to 100, so pagination is mandatory above that.
-- Bot accounts (e.g. `dependabot[bot]`, `github-actions[bot]`) are subject to the same limit. Add an early-return filter in a wrapper step if you want to exempt specific accounts.
+- The author count includes the newly opened PR itself and includes drafts.
+- Counting uses the GitHub search API (`is:pr is:open author:<login>`)
+- The comment marker `<!-- pr-author-limit:auto-close -->` prevents duplicate comments on repeated reopen events.
+- Trusted authors (`OWNER` / `MEMBER` / `COLLABORATOR`) are skipped by default. Set `skip-trusted-authors: 'false'` to enforce the limit on them too.
+- Bot accounts are subject to the limit unless listed in `bot-allowlist`. Logins must include the `[bot]` suffix (e.g. `renovate[bot]`).
 
 ## License
 

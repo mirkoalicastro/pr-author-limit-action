@@ -4,14 +4,30 @@ on:
   pull_request_target:
     types: [opened, reopened]
 
+# Minimal top-level permissions; the job re-declares what it actually needs.
+# IMPORTANT: This workflow runs in the context of the base repo via
+# `pull_request_target`. `actions/checkout` without `ref:` checks out the base
+# branch (safe). Do NOT add `ref: ${{ github.event.pull_request.head.sha }}`.
 permissions:
-  pull-requests: write
+  contents: read
+
+# Serialize per-author so rapid open/reopen events don't race and double-post.
+concurrency:
+  group: pr-author-limit-${{ github.event.pull_request.user.login }}
+  cancel-in-progress: false
 
 jobs:
   enforce:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      # Pinned to the v5.0.1 commit SHA (mutable tags must not be used in
+      # pull_request_target workflows that hold a write-scoped GITHUB_TOKEN).
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - uses: ./
         with:
           max-open-prs: ${{ vars.MAX_OPEN_PRS_PER_AUTHOR || '5' }}
+          bot-allowlist: ${{ vars.BOT_ALLOWLIST || '' }}
+          skip-trusted-authors: ${{ vars.SKIP_TRUSTED_AUTHORS || 'true' }}
