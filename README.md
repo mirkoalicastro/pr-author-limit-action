@@ -20,7 +20,6 @@ Particularly useful for tackling **AI-generated PRs** that can flood a repositor
 | max-open-prs          | 5                     | Maximum open PRs allowed per author.                                            |
 | bot-allowlist         | <empty>               | Comma-separated bot logins to skip (example: `renovate[bot],dependabot[bot]`).  |
 | skip-trusted-authors  | true                  | When true, skip PRs from owners, members, collaborators.                        |
-| github-token          | `${{ github.token }}` | Token used to list and close PRs. Needs `pull-requests: write`.                 |
 
 ## Usage
 
