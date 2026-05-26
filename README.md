@@ -22,7 +22,6 @@ Particularly useful for tackling **AI-generated PRs** that can flood a repositor
 | skip-trusted-authors  | true                  | When true, skip PRs from owners, members, collaborators.                        |
 
 ## Usage
-
 Create `.github/workflows/pr-author-limit.yml` in your repository:
 
 ```yaml
@@ -53,6 +52,9 @@ jobs:
 ```
 
 Trusted authors are skipped by default. Set skip-trusted-authors: 'false' to enable the check for trusted authors.
+
+## Example
+![doc/bot-message.png](doc/bot-message.png)
 
 ## License
 
