@@ -1,0 +1,17 @@
+name: PR author limit
+
+on:
+  pull_request_target:
+    types: [opened, reopened]
+
+permissions:
+  pull-requests: write
+
+jobs:
+  enforce:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          max-open-prs: ${{ vars.MAX_OPEN_PRS_PER_AUTHOR || '5' }}
