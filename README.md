@@ -1,4 +1,4 @@
-# pr-author-limit
+# PR Author Limit Action
 
 GitHub Action that auto-closes new pull requests when the author already has more than N open PRs in the same repository.
 
